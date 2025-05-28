@@ -6,7 +6,11 @@
       "Bash(source:*)",
       "Bash(pip install:*)",
       "Bash(python -m pytest -vvv tests/test_spotifygen.py tests/test_spotifygenCLI.py)",
-      "Bash(python:*)"
+      "Bash(python:*)",
+      "Bash(git add:*)",
+      "Bash(git push:*)",
+      "Bash(git checkout:*)",
+      "Bash(ls:*)"
     ],
     "deny": []
   }
