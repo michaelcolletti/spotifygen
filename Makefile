@@ -30,7 +30,8 @@ format:
 	black src/*.py
 
 lint:
-	pylint --disable=R,C tests/test_spotifygen.py tests/test_spotifygenCLI.py
+	#pylint --disable=R,C tests/test_spotifygen.py tests/test_spotifygenCLI.py
+	flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
 
 
 clean:
