@@ -1,8 +1,7 @@
 ## SpotifyGen 
-## SpotifyGen
-**SpotifyGen** is a collection of scripts designed to help you manage and generate Spotify playlists. 🎧
+**SpotifyGen** is a collection of Python scripts designed to help you manage and generate Spotify playlists. 🎧
 
-These scripts assist in creating and organizing your Spotify library.
+These scripts offer multiple ways to create and organize your Spotify library, from artist-based discovery to exact setlist recreation.
 
 ## 🚦 Prerequisites
 
@@ -41,115 +40,166 @@ Follow these steps to set up SpotifyGen.
     ```
 
 3.  **Set Environment Variables**:
-    SpotifyGen requires your API credentials. You can set these in your shell environment or use .env. A way to convert env to GH secrets is [env-to-github-secrets](https://github.com/michaelcolletti/env-to-github-secrets/):
+    SpotifyGen requires your API credentials. Create a `.env` file in the project root:
+    ```bash
+    # .env file
+    SPOTIPY_CLIENT_ID=your_client_id_here
+    SPOTIPY_CLIENT_SECRET=your_client_secret_here
+    SPOTIPY_REDIRECT_URI=http://localhost:8888/callback
+    ```
+    
+    Or set them in your shell environment:
     ```bash
     export SPOTIPY_CLIENT_ID='YOUR_CLIENT_ID'
     export SPOTIPY_CLIENT_SECRET='YOUR_CLIENT_SECRET'
     export SPOTIPY_REDIRECT_URI='YOUR_REDIRECT_URI'
     ```
-    (On Windows, use `set` instead of `export`, e.g., `set SPOTIPY_CLIENT_ID=YOUR_CLIENT_ID`)
-    Alternatively, consider using a `.env` file with a library like `python-dotenv` if the scripts support it.
+    
+    **Note**: Scripts support both `SPOTIFY_*` and `SPOTIPY_*` prefixes for compatibility.
+    
+    A way to convert env to GH secrets is [env-to-github-secrets](https://github.com/michaelcolletti/env-to-github-secrets/).
 
 ## 🚀 Usage
 
-This section explains how to use the scripts. Each script (or module) has specific functionalities. The following are *hypothetical* examples. Adapt these to your actual script names and functionalities.
+SpotifyGen offers several scripts for different playlist creation workflows:
 
 ---
 
 <details>
-<summary>✨ <code>create_playlist.py</code> - Create New Playlists</summary>
+<summary>🎵 <code>spotifygenCLI.py</code> - Artist-Based Playlist Creator</summary>
 
-This script creates new playlists based on specified artists, genres, or tracks.
+Creates two playlists from a list of artists: one with popular tracks and another with deep cuts (lesser-known tracks).
 
 **How it Works:**
-Provide seed artists, genres, and/or tracks, and the script will use Spotify's recommendation engine to generate a list of songs.
+Provide a text file with artist names (one per line), and the script will create two playlists using Spotify's catalog.
 
-**Command Line Arguments (Example):**
+**Command Line Arguments:**
 
-*   `--name TEXT`: Name of the new playlist (Required).
-*   `--seeds-artists TEXT,...`: Comma-separated list of Spotify artist IDs or names.
-*   `--seeds-genres TEXT,...`: Comma-separated list of Spotify genre strings (e.g., "pop,rock,indie").
-*   `--seeds-tracks TEXT,...`: Comma-separated list of Spotify track IDs.
-*   `--limit INTEGER`: Number of tracks to add (Default: 20).
-*   `--public BOOLEAN`: Make playlist public (Default: True, use `--no-public` for False).
-*   `--description TEXT`: Playlist description.
+*   `file`: Path to text file containing artist names (Required)
+*   `--popular-limit INTEGER`: Number of popular tracks per artist (Default: 3)
+*   `--deep-limit INTEGER`: Number of deep cuts per artist (Default: 3)
+*   `--country COUNTRY`: Country code for popularity metrics (Default: US)
+*   `--popular-name TEXT`: Name for the popular tracks playlist
+*   `--deep-name TEXT`: Name for the deep cuts playlist
 
 **Example:**
-Create a 30-track public playlist named "Indie Vibes" based on artists "Bon Iver", "The National", and the genre "indie-folk".
+Create playlists from artists listed in `artist-list.txt` with 5 popular tracks and 2 deep cuts per artist:
 
 ```bash
-python scripts/create_playlist.py \
-  --name "Indie Vibes" \
-  --seeds-artists "Bon Iver,The National" \
-  --seeds-genres "indie-folk" \
-  --limit 30 \
-  --description "Chill indie folk tunes for a rainy day."
+python src/spotifygenCLI.py artist-list.txt \
+  --popular-limit 5 \
+  --deep-limit 2 \
+  --popular-name "Top Hits Collection" \
+  --deep-name "Hidden Gems"
 ```
+
+**Output:**
+- "Top Hits Collection" playlist with popular tracks
+- "Hidden Gems" playlist with lesser-known tracks
+- Summary report with success/failure counts
 </details>
 
 ---
 
 <details>
-<summary>❤️ <code>populate_from_liked.py</code> - Populate Playlists from Liked Songs</summary>
+<summary>📝 <code>setlist_playlist.py</code> - CSV Setlist Creator</summary>
 
-This script filters your liked songs based on specific criteria and adds matching tracks to a target playlist. This is useful for creating mood-based playlists from your existing favorites.
+Creates or updates a daily playlist from a CSV file containing exact artist-song combinations.
 
 **How it Works:**
-Specify criteria like genre, artist, or audio features (e.g., danceability, energy) to filter your liked songs.
+Provide a CSV file with `artist` and `song` columns, and the script will search for exact matches and create a dated playlist.
 
-**Command Line Arguments (Example):**
+**Smart Update Logic:**
+- **Same day:** Updates existing "Setlist YYYY-MM-DD" playlist with only new tracks
+- **New day:** Creates fresh playlist for the current date
+- **Duplicate detection:** Skips songs already in the playlist
 
-*   `--playlist-id TEXT`: ID of the playlist to add tracks to (Required).
-*   `--min-danceability FLOAT`: Minimum danceability (0.0 to 1.0).
-*   `--max-valence FLOAT`: Maximum valence (musical positiveness, 0.0 to 1.0).
-*   `--artist TEXT`: Filter by a specific artist name.
-*   `--genre TEXT`: Filter by a specific genre (Note: Spotify's genre tagging on tracks can be broad).
-*   `--limit INTEGER`: Max number of tracks to add from liked songs (Default: 50).
+**Command Line Arguments:**
+
+*   `file`: Path to CSV file containing setlist (Required)
+
+**CSV Format:**
+```csv
+song,artist
+Dolphin Dance,Herbie Hancock
+So What,Miles Davis
+Giant Steps,John Coltrane
+```
 
 **Example:**
-Add up to 25 highly danceable tracks by "Daft Punk" from your liked songs to the playlist with ID `37i9dQZF1DXcBWIGoYBM5M`.
-
 ```bash
-python scripts/populate_from_liked.py \
-  --playlist-id "37i9dQZF1DXcBWIGoYBM5M" \
-  --artist "Daft Punk" \
-  --min-danceability 0.7 \
-  --limit 25
+python src/setlist_playlist.py setlist.csv
 ```
+
+**Output:**
+- "Setlist 2025-05-28" playlist with exact track matches
+- Real-time search progress with ✓/✗/↻ indicators
+- Detailed summary showing new vs existing tracks
+- Direct Spotify playlist URL
+
+**Features:**
+- **Exact matching:** Searches for specific artist-song combinations
+- **Fallback search:** Uses broader search if exact match fails
+- **Progress tracking:** Shows search results for each track
+- **Environment flexible:** Works with both `SPOTIFY_*` and `SPOTIPY_*` variables
 </details>
 
 ---
 
 <details>
-<summary>📊 <code>analyze_playlist.py</code> - Analyze Playlist Data</summary>
+<summary>🔄 <code>spotifygen.py</code> - Interactive Artist Processor</summary>
 
-This script provides statistics and audio feature averages for a given playlist. For example, you can find the average danceability of a workout mix or the most common artist in a "Chill Focus" playlist.
+Interactive version of the artist-based playlist creator with user prompts.
 
 **How it Works:**
-Provide a playlist ID, and the script will output statistics and audio feature averages.
-
-**Command Line Arguments (Example):**
-
-*   `--playlist-id TEXT`: ID of the playlist to analyze (Required).
-*   `--output-format TEXT`: Output format (`json`, `csv`, `pretty`) (Default: `pretty`).
+Run the script and it will prompt you for an artist list file, then create both popular and deep cuts playlists.
 
 **Example:**
-Analyze the playlist `37i9dQZF1DX4sWSpwq3LiO` and display the results in a human-readable format.
-
 ```bash
-python scripts/analyze_playlist.py \
-  --playlist-id "37i9dQZF1DX4sWSpwq3LiO" \
-  --output-format pretty
+python src/spotifygen.py
+# Enter the path to your text file containing artists: artist-list.txt
 ```
-This might show you:
-*   Total Tracks: 50
-*   Average Danceability: 0.65
-*   Average Energy: 0.72
-*   Top 3 Artists: Artist A (5 tracks), Artist B (4 tracks), Artist C (3 tracks)
-*   Top 3 Genres (derived from artists): pop, electro-pop, dance
+
+**Output:**
+- "Most Popular Tracks" playlist
+- "Deep Cuts Collection" playlist
+- Interactive progress updates
 </details>
 
 ---
+
+## 📁 File Formats
+
+### Artist List Format (for `spotifygenCLI.py` and `spotifygen.py`)
+Plain text file with one artist name per line:
+```
+Miles Davis
+John Coltrane
+Herbie Hancock
+Wayne Shorter
+```
+
+### CSV Setlist Format (for `setlist_playlist.py`)
+CSV file with `song` and `artist` columns:
+```csv
+song,artist
+Blue in Green,Miles Davis
+Giant Steps,John Coltrane
+Maiden Voyage,Herbie Hancock
+```
+
+## 🛠️ Development Commands
+
+SpotifyGen includes a Makefile for common development tasks:
+
+```bash
+make install    # Install dependencies
+make test      # Run pytest tests
+make lint      # Run pylint on test files
+make format    # Format code with black
+make clean     # Remove cache directories
+make all       # Run install, lint, test, and format
+```
 
 ## 💡 Tips & Tricks
 
@@ -157,8 +207,16 @@ This might show you:
     *   Example URI: `spotify:track:TRACK_ID`
     *   Example Link: `https://open.spotify.com/track/TRACK_ID?si=...`
     *   The `TRACK_ID` is the alphanumeric string you need.
-*   **Rate Limiting**: Spotify's API has rate limits. If you're processing large libraries or making many requests quickly, the scripts might encounter these. Be patient, or design your scripts to handle them (e.g., with retries and backoff).
-*   **Authentication Flow**: The first time you run a script that requires user authorization (like modifying playlists or accessing user private data), you'll likely be redirected to a Spotify login page in your browser to grant permission. Subsequent runs might use a cached token.
+
+*   **Rate Limiting**: Spotify's API has rate limits. The scripts include built-in delays (1 second between artists, 0.1 seconds for track requests) to avoid hitting these limits.
+
+*   **Authentication Flow**: The first time you run a script, you'll be redirected to a Spotify login page in your browser to grant permission. Subsequent runs use a cached token.
+
+*   **Environment Variables**: Scripts support both `SPOTIFY_*` and `SPOTIPY_*` prefixes for environment variables, making them compatible with existing setups.
+
+*   **Daily Workflow**: Use `setlist_playlist.py` with the same CSV file throughout the day to incrementally build your setlist - it will only add new tracks!
+
+*   **Large Artist Lists**: For processing many artists, the scripts include progress indicators and error handling to track which artists couldn't be found.
 
 ## 🤝 Contributing
 
