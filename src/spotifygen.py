@@ -13,10 +13,6 @@ from dotenv import load_dotenv
 # Load environment variables from .env file
 load_dotenv()
 
-# 1. Set up authentication with Spotify API
-# You'll need to create a Spotify Developer account and register an application
-# to get these credentials: https://developer.spotify.com/dashboard/
-# Then store them in a .env file or system environment variables
 
 # Get credentials from environment variables
 client_id = os.getenv("SPOTIFY_CLIENT_ID")
@@ -51,11 +47,13 @@ def read_artists_from_file(file_path):
     return artists
 
 
-# Example: './artists.txt'
-file_path = input("Enter the path to your text file containing artists: ")
-artists = read_artists_from_file(file_path)
-print(f"Found {len(artists)} artists in file")
-print(f"First 5 artists: {artists[:5]}")
+# Only run this interactively, not during imports
+if __name__ == "__main__":
+    # Example: './artists.txt'
+    file_path = input("Enter the path to your text file containing artists: ")
+    artists = read_artists_from_file(file_path)
+    print(f"Found {len(artists)} artists in file")
+    print(f"First 5 artists: {artists[:5]}")
 
 
 # 3. Functions to find artists and their tracks
@@ -132,56 +130,6 @@ def create_playlist(name, description):
     return playlist["id"]
 
 
-# Create the two playlists
-popular_playlist_id = create_playlist(
-    "Most Popular Tracks",
-    "A collection of the most popular tracks from my favorite artists",
-)
-deep_cuts_playlist_id = create_playlist(
-    "Deep Cuts Collection", "Lesser-known gems from my favorite artists"
-)
-
-print(f"Created playlist 'Most Popular Tracks' with ID: {popular_playlist_id}")
-print(f"Created playlist 'Deep Cuts Collection' with ID: {deep_cuts_playlist_id}")
-
-# 5. Process each artist and add tracks to playlists
-popular_tracks = []
-deep_cut_tracks = []
-skipped_artists = []
-
-for artist in artists:
-    print(f"Processing artist: {artist}")
-
-    # Find the artist
-    artist_id, matched_name = find_artist_id(artist)
-    if not artist_id:
-        print(f"Could not find artist: {artist}")
-        skipped_artists.append(artist)
-        continue
-
-    print(f"Found artist: {matched_name} (ID: {artist_id})")
-
-    # Get top tracks
-    top_tracks = get_top_tracks(artist_id)
-    top_track_ids = [track["id"] for track in top_tracks]
-    popular_tracks.extend(top_track_ids)
-
-    # Get deep cuts
-    try:
-        cuts = get_deep_cuts(artist_id)
-        cut_ids = [track["id"] for track in cuts]
-        deep_cut_tracks.extend(cut_ids)
-
-        print(
-            f"Added {len(top_tracks)} popular tracks and {len(cuts)} deep cuts for {matched_name}"
-        )
-    except Exception as e:
-        print(f"Error getting deep cuts for {matched_name}: {e}")
-
-    # Add a small delay to avoid hitting API rate limits
-    time.sleep(1)
-
-
 # 6. Add tracks to playlists
 # Spotify API limits: maximum of 100 tracks per request
 def add_tracks_to_playlist(playlist_id, track_ids):
@@ -191,24 +139,74 @@ def add_tracks_to_playlist(playlist_id, track_ids):
         sp.playlist_add_items(playlist_id, batch)
 
 
-add_tracks_to_playlist(popular_playlist_id, popular_tracks)
-add_tracks_to_playlist(deep_cuts_playlist_id, deep_cut_tracks)
+if __name__ == "__main__":
+    # Create the two playlists
+    popular_playlist_id = create_playlist(
+        "Most Popular Tracks",
+        "A collection of the most popular tracks from my favorite artists",
+    )
+    deep_cuts_playlist_id = create_playlist(
+        "Deep Cuts Collection", "Lesser-known gems from my favorite artists"
+    )
 
-# 7. Summary
-print("\n=== Playlist Creation Summary ===")
-print(f"Total artists processed: {len(artists) - len(skipped_artists)}")
-print(f"Skipped artists: {len(skipped_artists)}")
-if skipped_artists:
-    print(f"Skipped artist names: {', '.join(skipped_artists)}")
-print(f"Total tracks in popular playlist: {len(popular_tracks)}")
-print(f"Total tracks in deep cuts playlist: {len(deep_cut_tracks)}")
-print("\nPlaylist URLs:")
-print(f"Popular Tracks: https://open.spotify.com/playlist/{popular_playlist_id}")
-print(f"Deep Cuts: https://open.spotify.com/playlist/{deep_cuts_playlist_id}")
+    print(f"Created playlist 'Most Popular Tracks' with ID: {popular_playlist_id}")
+    print(f"Created playlist 'Deep Cuts Collection' with ID: {deep_cuts_playlist_id}")
 
-# Example file format for artists.txt:
-# Taylor Swift
-# The Beatles
-# Kendrick Lamar
-# Beyoncé
-# Radiohead
+    # 5. Process each artist and add tracks to playlists
+    popular_tracks = []
+    deep_cut_tracks = []
+    skipped_artists = []
+
+    for artist in artists:
+        print(f"Processing artist: {artist}")
+
+        # Find the artist
+        artist_id, matched_name = find_artist_id(artist)
+        if not artist_id:
+            print(f"Could not find artist: {artist}")
+            skipped_artists.append(artist)
+            continue
+
+        print(f"Found artist: {matched_name} (ID: {artist_id})")
+
+        # Get top tracks
+        top_tracks = get_top_tracks(artist_id)
+        top_track_ids = [track["id"] for track in top_tracks]
+        popular_tracks.extend(top_track_ids)
+
+        # Get deep cuts
+        try:
+            cuts = get_deep_cuts(artist_id)
+            cut_ids = [track["id"] for track in cuts]
+            deep_cut_tracks.extend(cut_ids)
+
+            print(
+                f"Added {len(top_tracks)} popular tracks and {len(cuts)} deep cuts for {matched_name}"
+            )
+        except Exception as e:
+            print(f"Error getting deep cuts for {matched_name}: {e}")
+
+        # Add a small delay to avoid hitting API rate limits
+        time.sleep(1)
+
+    add_tracks_to_playlist(popular_playlist_id, popular_tracks)
+    add_tracks_to_playlist(deep_cuts_playlist_id, deep_cut_tracks)
+
+    # 7. Summary
+    print("\n=== Playlist Creation Summary ===")
+    print(f"Total artists processed: {len(artists) - len(skipped_artists)}")
+    print(f"Skipped artists: {len(skipped_artists)}")
+    if skipped_artists:
+        print(f"Skipped artist names: {', '.join(skipped_artists)}")
+    print(f"Total tracks in popular playlist: {len(popular_tracks)}")
+    print(f"Total tracks in deep cuts playlist: {len(deep_cut_tracks)}")
+    print("\nPlaylist URLs:")
+    print(f"Popular Tracks: https://open.spotify.com/playlist/{popular_playlist_id}")
+    print(f"Deep Cuts: https://open.spotify.com/playlist/{deep_cuts_playlist_id}")
+
+    # Example file format for artists.txt:
+    # Taylor Swift
+    # The Beatles
+    # Kendrick Lamar
+    # Beyoncé
+    # Radiohead

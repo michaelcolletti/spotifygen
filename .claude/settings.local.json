@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pip index versions:*)",
+      "Bash(make:*)",
+      "Bash(source:*)",
+      "Bash(pip install:*)",
+      "Bash(python -m pytest -vvv tests/test_spotifygen.py tests/test_spotifygenCLI.py)",
+      "Bash(python:*)"
+    ],
+    "deny": []
+  }
+}

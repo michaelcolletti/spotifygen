@@ -1,1 +1,1 @@
-spotify-gen.py
+spotifygen.py
