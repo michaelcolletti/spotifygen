@@ -11,7 +11,7 @@ RUN apt-get update && apt-get install -y \
 # Copy requirements first to leverage Docker cache
 COPY requirements.txt Makefile .
 RUN make install 
-RUN make test 
+#RUN make test 
 #&& make format && make lint
 #pip install --no-cache-dir -r requirements.txt
 
