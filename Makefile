@@ -1,6 +1,6 @@
 install:
 	pip install --upgrade pip &&\
-		pip install -r requirements.txt
+		pip install --no-cache-dir -r requirements.txt
 
 test:
 	#python -m pytest -vvv --cov=read_artists_from_file --cov=find_artist_id \
