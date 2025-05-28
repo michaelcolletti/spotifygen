@@ -201,6 +201,31 @@ make clean     # Remove cache directories
 make all       # Run install, lint, test, and format
 ```
 
+## 🐳 Docker Support
+
+SpotifyGen can be containerized for consistent deployment:
+
+```bash
+# Build the Docker image
+docker build -t spotifygen .
+
+# Run with environment variables
+docker run -e SPOTIPY_CLIENT_ID=your_id \
+           -e SPOTIPY_CLIENT_SECRET=your_secret \
+           -e SPOTIPY_REDIRECT_URI=http://localhost:8888/callback \
+           -v $(pwd):/app \
+           spotifygen python src/setlist_playlist.py setlist.csv
+
+# Run interactive shell in container
+docker run -it spotifygen bash
+```
+
+**Docker Features:**
+- Python 3.11-slim base image for optimal size
+- Development tools included (pytest, pylint, black)
+- Layer caching for faster builds
+- Proper environment variable support
+
 ## 💡 Tips & Tricks
 
 *   **Finding Spotify IDs/URIs**: You can find Spotify URIs/IDs by clicking the "..." (three dots) next to a song, artist, album, or playlist in the Spotify app/website, then "Share" -> "Copy Spotify URI" or "Copy Link".
