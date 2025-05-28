@@ -1,0 +1,97 @@
+# This workflow will install Python dependencies, run tests and lint with a single version of Python
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-python
+
+name: Python Build Test and Deploy
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+permissions:
+  contents: write # for pushing to the repository
+  packages: write # for pushing to the GitHub Container Registry
+  
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v3
+      with:
+        python-version: "3.10"
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install flake8 pytest
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+    - name: Format Code
+      run: |
+        # format the code with black
+        make format 
+    - name: Lint with flake8
+      run: |
+        make lint
+        # # stop the build if there are Python syntax errors or undefined names
+        # flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        # # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
+        # flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+    
+    - name: Get Latest Tag
+      id: get_latest_tag
+      uses: actions/github-script@v6
+      with:
+        script: |
+          if (github && github.repos && typeof github.repos.listTags === 'function') {
+            const tags = await github.repos.listTags({
+              owner: context.repo.owner,
+              repo: context.repo.repo
+            });
+    
+            if (tags.data.length === 0) {
+              core.setOutput('tag', 'v0.0.0'); // Default to v0.0.0 if no tags exist
+            } else {
+              core.setOutput('tag', tags.data[0].name);
+            }
+          } else {
+            core.setOutput('tag', 'v0.0.0'); // Fallback if listTags is unavailable
+          }      
+    - name: Increment Tag
+      id: increment_tag
+      run: |
+        # Extract the latest tag
+        latest_tag=${{ steps.get_latest_tag.outputs.tag }}
+        # Increment the version (patch level as an example)
+        IFS='.' read -ra VERSION <<< "${latest_tag#v}"
+        major=${VERSION[0]}
+        minor=${VERSION[1]}
+        patch=${VERSION[2]}
+        patch=$((patch + 1))
+        new_tag="v${major}.${minor}.${patch}"
+        echo "new_tag=${new_tag}" >> $GITHUB_ENV
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+
+    - name: Log in to Docker Hub
+      uses: docker/login-action@v2
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+
+    - name: Validate Docker Login
+      run: |
+        docker info
+        
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v3
+      with:
+        context: .
+        push: true
+        tags: ${{ secrets.DOCKER_USERNAME }}/spotifygen:latest
+        cache-from: type=local,src=/tmp/.buildx-cache
+        cache-to: type=local,dest=/tmp/.buildx-cache
